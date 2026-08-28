@@ -1,3 +1,4 @@
+#include "Disassembler.h"
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -18,9 +19,9 @@ int main(int argc, char *argv[]) {
   }
 
   // Gets the chip8 file size
-  std::streamsize size = file.tellg();
+  std::streamsize bufferSize = file.tellg();
 
-  if (size == -1) {
+  if (bufferSize == -1) {
     std::cerr << "Error: tellg command failed to calculate file size\n";
     return 1;
   }
@@ -32,12 +33,13 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  std::vector<uint8_t> rom_buffer(size);
-  if (!file.read(reinterpret_cast<char *>(rom_buffer.data()), size)) {
+  std::vector<uint8_t> romBuffer(bufferSize);
+  if (!file.read(reinterpret_cast<char *>(romBuffer.data()), bufferSize)) {
     std::cerr << "Error: Failed to read ROM data.\n";
     return 1;
   }
 
+  Disassembler disAssembler(romBuffer, bufferSize);
   std::cout << "[Disassembler] Loaded" << std::endl;
 
   // TODO: put disassembler logic here
