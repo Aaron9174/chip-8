@@ -137,7 +137,7 @@ enum class InstructionCode : uint16_t {
  */
 class Disassembler {
 public:
-  /** Default constructor */
+  /** The constructor */
   Disassembler(std::vector<uint8_t> romBuffer);
 
   /** Default destructor */
