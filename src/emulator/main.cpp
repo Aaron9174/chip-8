@@ -44,4 +44,7 @@ int main(int argc, char *argv[]) {
   std::cout << "[Chip8 Emulator] Loaded successfully\n";
   chip8Emu.loadProgram(romBuffer);
   std::cout << "[Chip8 Emulator] Program Loaded successfully\n";
+
+  // Start the emulator
+  chip8Emu.start();
 }

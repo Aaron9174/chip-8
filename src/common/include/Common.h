@@ -81,7 +81,7 @@ enum class InstructionCode : uint16_t {
   RET = 0x00EE,           // Returns from subroutine
   JP_ADDR_START = 0x1000, // Jump to location 0xnnn (0x1nnn)
   JP_ADDR_END = 0x1FFF,
-  CALL_ADDR_START = 0x2000, // Call subroutine at address 0xnnn  (0x2nnn)
+  CALL_ADDR_START = 0x2000, // Call subroutine at address 0xnnn (0x2nnn)
   CALL_ADDR_END = 0x2FFF,
   SE_VX_KK_START = 0x3000, // Skip next instruction if Vx=kk (0x3xkk)
   SE_VX_KK_END = 0x3FFF,

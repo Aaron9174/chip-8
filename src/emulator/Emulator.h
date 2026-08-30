@@ -1,6 +1,7 @@
 #ifndef EMULATOR__H
 #define EMULATOR__H
 
+#include "Common.h"
 #include <array>
 #include <vector>
 
@@ -49,11 +50,20 @@ public:
   void loadProgram(std::vector<uint8_t> &romBuffer);
 
   // TODO: docs
-  void execute();
+  void start();
 
 private:
   // TODO: docs
   void loadHexDigitSprites();
+
+  // TODO: docs
+  InstructionCode fetch();
+
+  // TODO: docs
+  void execute(InstructionCode opcode);
+
+  // TODO: docs
+  uint8_t generateRandomNumber();
 
   // Memory structure for RAM
   std::array<uint8_t, TOTAL_MEMORY_SIZE_BYTES> _memory;
@@ -63,10 +73,10 @@ private:
 
   // Register used to store memory addresses
   // NOTE: only the three LSB nibbles are used
-  RegisterSize16 _instrReg;
+  RegisterSize16 _iReg;
 
   // General purpose registers (Vx registers)
-  std::array<RegisterSize8, TOTAL_GPR_SIZE_BYTES> _generalPurposeReg;
+  std::array<RegisterSize8, TOTAL_GPR_SIZE_BYTES> _vReg;
 
   // Not used by programs, used as a flag for some instructions
   RegisterSize8 _vfRegister;
