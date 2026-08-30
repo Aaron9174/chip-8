@@ -6,7 +6,7 @@
 namespace chip8 {
 
 // The starting memory address for chip8 programs
-constexpr uint16_t ADDR_SPACE_START = 0x200;
+constexpr uint16_t PROGRAM_START_MEM_ADDRESS = 0x200;
 
 // Instruction set mask constants
 constexpr uint16_t SET_REG_MASK = 0x000F;

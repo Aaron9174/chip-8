@@ -175,7 +175,7 @@ std::string Disassembler::formatRegister(std::stringstream &formatter,
 void Disassembler::formatMemoryAddress(std::stringstream &outputStream,
                                        uint32_t bufferByteIndex) {
   outputStream << "0x" << std::setfill('0') << std::setw(4) << std::hex
-               << ADDR_SPACE_START + bufferByteIndex << ": ";
+               << PROGRAM_START_MEM_ADDRESS + bufferByteIndex << ": ";
 }
 
 /****************************************************************************/

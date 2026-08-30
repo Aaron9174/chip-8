@@ -1,4 +1,6 @@
 #include "Emulator.h"
+#include "Common.h"
+#include "emulator.h"
 
 namespace chip8 {
 
@@ -7,12 +9,19 @@ namespace chip8 {
 Emulator::Emulator()
     : _memory(), _stack{}, _instrReg(0), _generalPurposeReg{}, _vfRegister(0),
       _delayReg(0), _soundTimerReg(0), _pcReg(PROGRAM_START_MEM_ADDRESS),
-      _spReg(0) {}
+      _spReg(0) {
+  loadHexDigitSprites();
+}
 
 /****************************************************************************/
 /****************************************************************************/
-void Emulator::initialize() {
-  // TODO: implement
+void Emulator::loadHexDigitSprites() {
+  uint32_t memoryByteIndex = 0;
+  for (auto spriteDigit : spriteDigits) {
+    for (auto byte : spriteDigit) {
+      _memory[memoryByteIndex++] = byte;
+    }
+  }
 }
 
 /****************************************************************************/
