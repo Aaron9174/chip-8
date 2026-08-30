@@ -1,7 +1,10 @@
 #include "Disassembler.h"
+#include "Common.h"
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+
+namespace chip8 {
 
 /****************************************************************************/
 /****************************************************************************/
@@ -321,3 +324,5 @@ void Disassembler::parseIoAndTimerRegisterInstr(std::stringstream &formatter,
 
   instr._param1 = formatRegister(formatter, instrRaw & MASK_0F00, 2);
 }
+
+} // namespace chip8

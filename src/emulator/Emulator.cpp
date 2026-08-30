@@ -1,5 +1,7 @@
 #include "Emulator.h"
 
+namespace chip8 {
+
 /****************************************************************************/
 /****************************************************************************/
 Emulator::Emulator()
@@ -22,3 +24,5 @@ void Emulator::loadProgram(std::vector<uint8_t> &romBuffer) {}
 void Emulator::execute() {
   // TODO: implement execution loop
 }
+
+} // namespace chip8

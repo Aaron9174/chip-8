@@ -1,13 +1,15 @@
+#ifndef EMULATOR__H
+#define EMULATOR__H
+
 #include <array>
-#include <stack>
 #include <vector>
+
+namespace chip8 {
 
 constexpr uint32_t TOTAL_MEMORY_SIZE_BYTES = 4096;
 constexpr uint8_t TOTAL_GPR_SIZE = 16;
 constexpr uint8_t TOTAL_STACK_SIZE = 16;
 constexpr double TARGET_HZ = 60;
-// TODO: move to common
-constexpr uint8_t PROGRAM_START_MEM_ADDRESS = 0x200;
 
 using RegisterSize16 = uint16_t;
 using RegisterSize8 = uint8_t;
@@ -58,3 +60,7 @@ private:
   // Stack pointer register used to point to the topmost level of the stack
   RegisterSize8 _spReg;
 };
+
+} // namespace chip8
+
+#endif
