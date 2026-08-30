@@ -46,15 +46,22 @@ void Disassembler::deconstruct(std::stringstream &ss) {
 
     Instruction instr;
     std::stringstream formatter;
+    std::cout << "instrRaw: " << instrRaw << std::endl;
+    printf("instrRaw: %d", instrRaw);
+    printf("JP[%02X, %02X]",
+           static_cast<uint16_t>(InstructionCode::JP_ADDR_START),
+           static_cast<uint16_t>(InstructionCode::JP_ADDR_END));
+
     if (instrCode == InstructionCode::CLS) {
       instr._cmdLabel = "CLS";
       instr._msg = "Clears the display";
     } else if (instrCode == InstructionCode::RET) {
       instr._cmdLabel = "RET";
       instr._msg = "Returns from subroutine";
-    } else if (instrCode == InstructionCode::JP_ADDR_START &&
+    } else if (instrCode >= InstructionCode::JP_ADDR_START &&
                instrCode <= InstructionCode::JP_ADDR_END) {
       instr._cmdLabel = "JP";
+      std::cout << "JP!" << std::endl;
       instr._msg = "Jump to location 0xnnn (0x1nnn)";
       instr._param1 = formatHex(formatter, instrRaw & MASK_0FFF, 2);
     } else if (instrCode >= InstructionCode::CALL_ADDR_START &&
