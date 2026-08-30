@@ -3,16 +3,48 @@
  * Disassembles CHIP8 ROMs into readable CHIP8 assembly
  */
 #include <cstdint>
+#include <iostream>
 #include <vector>
 
+// The starting memory address for chip8 programs
+constexpr uint16_t ADDR_SPACE_START = 0x200;
+
+// Instruction set mask constants
 constexpr uint16_t SET_REG_MASK = 0x000F;
 constexpr uint16_t SKP_MASK = 0x00FF;
 constexpr uint16_t IO_AND_TIMER_MASK = 0x00FF;
 
+// Binary data mask constants
+constexpr uint16_t MASK_FF00 = 0xFF00;
+constexpr uint16_t MASK_00FF = 0x00FF;
+constexpr uint16_t MASK_F000 = 0xF000;
+constexpr uint16_t MASK_0F00 = 0x0F00;
+constexpr uint16_t MASK_00F0 = 0x00F0;
+constexpr uint16_t MASK_000F = 0x000F;
+constexpr uint16_t MASK_0FFF = 0x0FFF;
+
+// Defines a printable chip8 assembly instruction
+struct Instruction {
+  /** Default constructor */
+  Instruction() = default;
+  /** Operations human readable command label */
+  std::string _cmdLabel;
+  /** The first optional stringified parameter of the instruction */
+  std::optional<std::string> _param1;
+  /** The second optional stringified parameter of the instruction */
+  std::optional<std::string> _param2;
+  /** The third optional stringified parameter of the instruction */
+  std::optional<std::string> _param3;
+  /** The assembly line informative message */
+  std::string _msg;
+};
+
+// Define default stream insertion operator
+std::ostream &operator<<(std::ostream &os, const Instruction &instr);
 /**
  * Nibbles that represent different set register instruction codes
  */
-enum class SetRegInstrCode {
+enum class SetRegInstrCode : uint8_t {
   LD_VX_VY = 0x0,  // Set Vx = Vy (0x8xy0)
   OR_VX_VY = 0x1,  // Set Vx = Vx | Vy (0x8xy1)
   AND_VX_VY = 0x2, // Set Vx = Vx & Vy (0x8xy2)
@@ -22,11 +54,12 @@ enum class SetRegInstrCode {
   // Only the lowest 8-bit result is kept
   ADD_VX_VY = 0x4,
   // Set Vx = Vx - Vy ; Set VF = NOT borrow (0x8xy5)
-  // NOTE: If Vx > Vy, VF is is set to 1, otherwise 0. Then operation occurs.
+  // NOTE: If Vx > Vy, VF is is set to 1, otherwise 0. Then operation
+  // occurs.
   SUB_VX_VY = 0x5,
   // Set Vx = Vx / 2 (0x8xy6)
-  // NOTE: If least significant bit of Vx is 1, Then VF is set to 1, otherwise
-  // 0. Then operation occurs.
+  // NOTE: If least significant bit of Vx is 1, Then VF is set to 1,
+  // otherwise 0. Then operation occurs.
   SHR_VX_VY = 0x6,
   // Set Vx = Vy - Vx, set VF = NOT borrow (0x8xy7)
   // NOTE: If Vy > Vx, VF is set to 1, otherwise 0 . Then operation occurs.
@@ -35,8 +68,8 @@ enum class SetRegInstrCode {
   /** Unused codes [0x8-0xD] */
 
   // Set Vx = Vx * 2
-  // NOTE: If most significant bit of Vx is asserted, VF is set to 1, otherwise
-  // zero. Then operation occurs.
+  // NOTE: If most significant bit of Vx is asserted, VF is set to 1,
+  // otherwise zero. Then operation occurs.
   SHL_VX_VY = 0xE
 };
 
@@ -62,7 +95,7 @@ enum class IoAndTimerCode {
 
 /** The chip-8 full instruction set (none constant byte values are reprsented as
  * range) */
-enum class Instructions : uint16_t {
+enum class InstructionCode : uint16_t {
   CLS = 0x00E0,           // Clears the display
   RET = 0x00EE,           // Returns from subroutine
   JP_ADDR_START = 0x1000, // Jump to location 0xnnn (0x1nnn)
@@ -98,6 +131,10 @@ enum class Instructions : uint16_t {
   IO_AND_TIMER_INSTR_END = 0xFFFF,
 };
 
+/**
+ * The disassmbler class consumes a byte array read in from a chip8 ROM and
+ * converts it into human readable assembly instructions
+ */
 class Disassembler {
 public:
   /** Default constructor */
@@ -106,10 +143,77 @@ public:
   /** Default destructor */
   ~Disassembler() = default;
 
-  /** TODO: Docs */
-  void deconstruct();
+  /**
+   * Deconstructs the binary data in the rom buffer into human readable assembly
+   * language
+   * @param[out] ss - The output stream
+   */
+  void deconstruct(std::stringstream &ss);
 
 private:
+  /**
+   * Format a hex string from a 1-2 byte value
+   * @param formatter - The formatter stream to use
+   * @param value - The value to format
+   * @param byteLen - The max byte length of the value
+   * @returns a formatted string
+   */
+  std::string formatHex(std::stringstream &formatter, uint16_t value,
+                        uint32_t byteLen);
+
+  /**
+   * Format a register string from a 4 byte value
+   * @param formatter - The formatter stream to use
+   * @param value - The value to format
+   * @param nibbleIndex - The nibble index of where the register nibble can be
+   * obtained from (based on a hex string)
+   * @returns a formatted string
+   */
+  std::string formatRegister(std::stringstream &formatter, uint32_t regNum,
+                             uint32_t nibbleIndex);
+
+  /**
+   * Formats a memory address and outputs it to the given stream
+   * @param outputStream - The stream to ouput to
+   * @param bufferByteIndex - The current byte index relative to the start of
+   * memory
+   */
+  void formatMemoryAddress(std::stringstream &outputStream,
+                           uint32_t bufferByteIndex);
+
+  /**
+   * Parses a 2 byte instruction code to a set register assembly instruction
+   * @param formatter - The formatter to use
+   * @param instrRaw - The raw 2 byte instruction
+   * @param instrCode - The enum representation of the instruction
+   * @param[out] instr - The instruction to output too
+   */
+  void parseSetRegisterInstr(std::stringstream &formatter, uint16_t instrRaw,
+                             InstructionCode instrCode, Instruction &instr);
+
+  /**
+   * Parses a 2 byte instruction code to a skip register assembly instruction
+   * @param formatter - The formatter to use
+   * @param instrRaw - The raw 2 byte instruction
+   * @param instrCode - The enum representation of the instruction
+   * @param[out] instr - The instruction to output too
+   */
+  void parseSkipRegisterInstr(std::stringstream &formatter, uint16_t instrRaw,
+                              InstructionCode instrCode, Instruction &instr);
+
+  /**
+   * Parses a 2 byte instruction code to an io and timer register assembly
+   * instruction
+   * @param formatter - The formatter to use
+   * @param instrRaw - The raw 2 byte instruction
+   * @param instrCode - The enum representation of the instruction
+   * @param[out] instr - The instruction to output too
+   */
+  void parseIoAndTimerRegisterInstr(std::stringstream &formatter,
+                                    uint16_t instrRaw,
+                                    InstructionCode instrCode,
+                                    Instruction &instr);
+
   // Contains the raw byte buffer representing the chip8 ROM data
   std::vector<uint8_t> _romBuffer;
 };

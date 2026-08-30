@@ -1,6 +1,7 @@
 #include "Disassembler.h"
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -39,8 +40,20 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  Disassembler disAssembler(romBuffer, bufferSize);
+  Disassembler disassembler(romBuffer);
   std::cout << "[Disassembler] Loaded" << std::endl;
 
-  // TODO: put disassembler logic here
+  // Deconstruct the binary into assembly
+  std::stringstream ss;
+  disassembler.deconstruct(ss);
+
+  // Output formatted string stream to file for easy viewing
+  std::ofstream outFile("romAssembly.txt");
+  if (outFile.is_open()) {
+    outFile << ss.rdbuf();
+    outFile.close();
+    std::cout << "[Disassembler] Generated Assembly Output\n";
+  } else {
+    std::cerr << "Error: Could not open output file\n";
+  }
 }
