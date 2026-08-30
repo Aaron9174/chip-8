@@ -40,10 +40,9 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  // Deconstruct the binary into assembly
   Disassembler disassembler(romBuffer);
   std::cout << "[Disassembler] Loaded" << std::endl;
-
-  // Deconstruct the binary into assembly
   std::stringstream ss;
   disassembler.deconstruct(ss);
 

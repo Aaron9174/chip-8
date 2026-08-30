@@ -185,34 +185,29 @@ private:
    * Parses a 2 byte instruction code to a set register assembly instruction
    * @param formatter - The formatter to use
    * @param instrRaw - The raw 2 byte instruction
-   * @param instrCode - The enum representation of the instruction
    * @param[out] instr - The instruction to output too
    */
   void parseSetRegisterInstr(std::stringstream &formatter, uint16_t instrRaw,
-                             InstructionCode instrCode, Instruction &instr);
+                             Instruction &instr);
 
   /**
    * Parses a 2 byte instruction code to a skip register assembly instruction
    * @param formatter - The formatter to use
    * @param instrRaw - The raw 2 byte instruction
-   * @param instrCode - The enum representation of the instruction
    * @param[out] instr - The instruction to output too
    */
   void parseSkipRegisterInstr(std::stringstream &formatter, uint16_t instrRaw,
-                              InstructionCode instrCode, Instruction &instr);
+                              Instruction &instr);
 
   /**
    * Parses a 2 byte instruction code to an io and timer register assembly
    * instruction
    * @param formatter - The formatter to use
    * @param instrRaw - The raw 2 byte instruction
-   * @param instrCode - The enum representation of the instruction
    * @param[out] instr - The instruction to output too
    */
   void parseIoAndTimerRegisterInstr(std::stringstream &formatter,
-                                    uint16_t instrRaw,
-                                    InstructionCode instrCode,
-                                    Instruction &instr);
+                                    uint16_t instrRaw, Instruction &instr);
 
   // Contains the raw byte buffer representing the chip8 ROM data
   std::vector<uint8_t> _romBuffer;

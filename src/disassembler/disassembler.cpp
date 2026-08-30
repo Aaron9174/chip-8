@@ -43,107 +43,101 @@ void Disassembler::deconstruct(std::stringstream &ss) {
 
     Instruction instr;
     std::stringstream formatter;
-    switch (instrCode) {
-    case InstructionCode::CLS:
+    if (instrCode == InstructionCode::CLS) {
       instr._cmdLabel = "CLS";
       instr._msg = "Clears the display";
-      break;
-    case InstructionCode::RET:
+    } else if (instrCode == InstructionCode::RET) {
       instr._cmdLabel = "RET";
       instr._msg = "Returns from subroutine";
-      break;
-    case InstructionCode::JP_ADDR_START... InstructionCode::JP_ADDR_END:
+    } else if (instrCode == InstructionCode::JP_ADDR_START &&
+               instrCode <= InstructionCode::JP_ADDR_END) {
       instr._cmdLabel = "JP";
       instr._msg = "Jump to location 0xnnn (0x1nnn)";
       instr._param1 = formatHex(formatter, instrRaw & MASK_0FFF, 2);
-      break;
-    case InstructionCode::CALL_ADDR_START... InstructionCode::CALL_ADDR_END:
+    } else if (instrCode >= InstructionCode::CALL_ADDR_START &&
+               instrCode <= InstructionCode::CALL_ADDR_END) {
       instr._cmdLabel = "CALL";
       instr._msg = "Call subroutine at address 0xnnn  (0x2nnn)";
       instr._param1 = formatHex(formatter, instrRaw & MASK_0FFF, 2);
-      break;
-    case InstructionCode::SE_VX_KK_START... InstructionCode::SE_VX_KK_END:
+    } else if (instrCode >= InstructionCode::SE_VX_KK_START &&
+               instrCode <= InstructionCode::SE_VX_KK_END) {
       instr._cmdLabel = "SE";
       instr._msg = "Skip next instruction if Vx=kk (0x3xkk)";
       instr._param1 = formatRegister(formatter, instrRaw & MASK_0F00, 2);
       instr._param2 = formatHex(formatter, instrRaw & MASK_00FF, 2);
-      break;
-    case InstructionCode::SNE_VX_KK_START... InstructionCode::SNE_VX_KK_END:
+    } else if (instrCode >= InstructionCode::SNE_VX_KK_START &&
+               instrCode <= InstructionCode::SNE_VX_KK_END) {
       instr._cmdLabel = "SNE";
       instr._msg = "Skip next instruction if Vx!=kk (0x3xkk)";
       instr._param1 = formatRegister(formatter, instrRaw & MASK_0F00, 2);
       instr._param2 = formatHex(formatter, instrRaw & MASK_00FF, 1);
-      break;
-    case InstructionCode::SE_VX_VY_START... InstructionCode::SE_VX_VY_END:
+    } else if (instrCode >= InstructionCode::SE_VX_VY_START &&
+               instrCode <= InstructionCode::SE_VX_VY_END) {
       instr._cmdLabel = "SE";
       instr._msg = "Skip next instruction if Vx=Vy (0x5xy0)";
       instr._param1 = formatRegister(formatter, instrRaw & MASK_0F00, 2);
       instr._param2 = formatRegister(formatter, instrRaw & MASK_00F0, 1);
-      break;
-    case InstructionCode::LD_VX_KK_START... InstructionCode::LD_VX_KK_END:
+    } else if (instrCode >= InstructionCode::LD_VX_KK_START &&
+               instrCode <= InstructionCode::LD_VX_KK_END) {
       instr._cmdLabel = "LD";
       instr._msg = "Place value in register such that Vx=kk (0x6xkk)";
       instr._param1 = formatRegister(formatter, instrRaw & MASK_0F00, 2);
       instr._param2 = formatHex(formatter, instrRaw & MASK_00FF, 1);
-      break;
-    case InstructionCode::ADD_VX_KK_START... InstructionCode::ADD_VX_KK_END:
+    } else if (instrCode >= InstructionCode::ADD_VX_KK_START &&
+               instrCode <= InstructionCode::ADD_VX_KK_END) {
       instr._cmdLabel = "ADD";
       instr._msg = "Adds value to Vx such that Vx=Vx+kk (0x7xkk)";
       instr._param1 = formatRegister(formatter, instrRaw & MASK_0F00, 2);
       instr._param2 = formatHex(formatter, instrRaw & MASK_00FF, 1);
-      break;
-    case InstructionCode::SET_REG_START... InstructionCode::SET_REG_END:
-      parseSetRegisterInstr(formatter, instrRaw, instrCode, instr);
-      break;
-    case InstructionCode::SNE_VX_VY_START... InstructionCode::SNE_VX_VY_END:
+    } else if (instrCode >= InstructionCode::SET_REG_START &&
+               instrCode <= InstructionCode::SET_REG_END) {
+      parseSetRegisterInstr(formatter, instrRaw, instr);
+    } else if (instrCode >= InstructionCode::SNE_VX_VY_START &&
+               instrCode <= InstructionCode::SNE_VX_VY_END) {
       instr._cmdLabel = "SNE";
       instr._msg = "Skip next instruction if Vx!=Vy (0x9xy0)";
       instr._param1 = formatRegister(formatter, instrRaw & MASK_0F00, 2);
       instr._param2 = formatRegister(formatter, instrRaw & MASK_00F0, 1);
-      break;
-    case InstructionCode::LD_I_ADDR_START... InstructionCode::LD_I_ADDR_END:
+    } else if (instrCode >= InstructionCode::LD_I_ADDR_START &&
+               instrCode <= InstructionCode::LD_I_ADDR_END) {
       instr._cmdLabel = "LD";
       instr._msg = "Set register I such that I=nnn (0xAnnn)";
       instr._param1 = formatHex(formatter, instrRaw & MASK_0FFF, 2);
-      break;
-    case InstructionCode::JP_V0_ADDR_START... InstructionCode::JP_V0_ADDR_END:
+    } else if (instrCode >= InstructionCode::JP_V0_ADDR_START &&
+               instrCode <= InstructionCode::JP_V0_ADDR_END) {
       instr._cmdLabel = "JP";
       instr._msg = "Jump to location nnn + V0 (0xBnnn)";
       instr._param1 = formatHex(formatter, instrRaw & MASK_0FFF, 2);
-      break;
-    case InstructionCode::RND_VX_KK_START... InstructionCode::RND_VX_KK_END:
+    } else if (instrCode >= InstructionCode::RND_VX_KK_START &&
+               instrCode <= InstructionCode::RND_VX_KK_END) {
       instr._cmdLabel = "RND";
       instr._msg = "Set register Vx=Rnd(byte)&kk (0xCxkk)";
       instr._param1 = formatRegister(formatter, instrRaw & MASK_0F00, 2);
       instr._param2 = formatHex(formatter, instrRaw & MASK_00FF, 1);
-      break;
-    case InstructionCode::DRW_VX_VY_START... InstructionCode::DRW_VX_VY_END:
+    } else if (instrCode >= InstructionCode::DRW_VX_VY_START &&
+               instrCode <= InstructionCode::DRW_VX_VY_END) {
       instr._cmdLabel = "DRW";
       instr._msg = "Display n-byte sprite starting at memory location I at "
                    "(Vx, Vy) (0xDxyn)";
       instr._param1 = formatRegister(formatter, instrRaw & MASK_0F00, 2);
       instr._param2 = formatRegister(formatter, instrRaw & MASK_00F0, 1);
       instr._param3 = formatHex(formatter, instrRaw & MASK_000F, 1);
-      break;
-    case InstructionCode::SKP_START... InstructionCode::SKP_END:
-      parseSkipRegisterInstr(formatter, instrRaw, instrCode, instr);
-      break;
-    case InstructionCode::IO_AND_TIMER_INSTR_START... InstructionCode::
-        IO_AND_TIMER_INSTR_END:
-      parseIoAndTimerRegisterInstr(formatter, instrRaw, instrCode, instr);
-      break;
-    default:
+    } else if (instrCode >= InstructionCode::SKP_START &&
+               instrCode <= InstructionCode::SKP_END) {
+      parseSkipRegisterInstr(formatter, instrRaw, instr);
+    } else if (instrCode >= InstructionCode::IO_AND_TIMER_INSTR_START &&
+               instrCode <= InstructionCode::IO_AND_TIMER_INSTR_END) {
+      parseIoAndTimerRegisterInstr(formatter, instrRaw, instr);
+    } else {
       // NOTE: This is not a real instruction, but utilized for printing generic
       // data to the disassemble file
       instr._cmdLabel = "DATA";
       instr._msg = "Generic data";
       instr._param1 = formatHex(formatter, instrRaw, 2);
-      break;
     }
 
     formatMemoryAddress(ss, bufferIndex);
     ss << instr;
-
     bufferIndex += 2;
   }
 }
@@ -185,7 +179,6 @@ void Disassembler::formatMemoryAddress(std::stringstream &outputStream,
 /****************************************************************************/
 void Disassembler::parseSetRegisterInstr(std::stringstream &formatter,
                                          uint16_t instrRaw,
-                                         InstructionCode instrCode,
                                          Instruction &instr) {
   const auto setRegInstrCode =
       static_cast<SetRegInstrCode>(instrRaw & MASK_000F);
@@ -244,7 +237,6 @@ void Disassembler::parseSetRegisterInstr(std::stringstream &formatter,
 /****************************************************************************/
 void Disassembler::parseSkipRegisterInstr(std::stringstream &formatter,
                                           uint16_t instrRaw,
-                                          InstructionCode instrCode,
                                           Instruction &instr) {
   const auto skpInstrCode = static_cast<SkpInstrCode>(instrRaw & MASK_00FF);
 
@@ -275,7 +267,6 @@ void Disassembler::parseSkipRegisterInstr(std::stringstream &formatter,
 /****************************************************************************/
 void Disassembler::parseIoAndTimerRegisterInstr(std::stringstream &formatter,
                                                 uint16_t instrRaw,
-                                                InstructionCode instrCode,
                                                 Instruction &instr) {
   const auto ioTimerInstrCode =
       static_cast<IoAndTimerCode>(instrRaw & MASK_00FF);
