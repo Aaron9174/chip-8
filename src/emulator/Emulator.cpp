@@ -26,7 +26,12 @@ void Emulator::loadHexDigitSprites() {
 
 /****************************************************************************/
 /****************************************************************************/
-void Emulator::loadProgram(std::vector<uint8_t> &romBuffer) {}
+void Emulator::loadProgram(std::vector<uint8_t> &romBuffer) {
+  uint32_t memoryByteIndex = PROGRAM_START_MEM_ADDRESS;
+  for (auto romByte : romBuffer) {
+    _memory[memoryByteIndex++] = romByte;
+  }
+}
 
 /****************************************************************************/
 /****************************************************************************/

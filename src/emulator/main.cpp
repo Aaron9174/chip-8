@@ -1,4 +1,4 @@
-#include "emulator.h"
+#include "Emulator.h"
 #include <fstream>
 #include <iostream>
 #include <vector>
@@ -40,5 +40,8 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  // TODO: Load program into emulatoR
+  Emulator chip8Emu;
+  std::cout << "[Chip8 Emulator] Loaded successfully\n";
+  chip8Emu.loadProgram(romBuffer);
+  std::cout << "[Chip8 Emulator] Program Loaded successfully\n";
 }
