@@ -130,15 +130,16 @@ void Emulator::execute(InstructionCode opcode) {
              opcode <= InstructionCode::LD_VX_KK_END) {
     // Puts the value kk in register Vx s.t. Vx=kk (0x6xkk)
     const uint8_t vregXIndex = (opcodeByte & MASK_0F00) >> 8;
-    const RegisterSize8 data = (opcodeByte & MASK_00FF) >> 4;
+    const auto data = static_cast<RegisterSize8>(opcodeByte & MASK_00FF);
     _vReg[vregXIndex] = data;
   } else if (opcode >= InstructionCode::ADD_VX_KK_START &&
              opcode <= InstructionCode::ADD_VX_KK_END) {
     // Adds value to Vx s.t. Vx=Vx+kk (0x7xkk)
     const uint8_t vregXIndex = (opcodeByte & MASK_0F00) >> 8;
-    const RegisterSize8 data = (opcodeByte & MASK_00FF) >> 4;
+    const RegisterSize8 data = (opcodeByte & MASK_00FF);
     // NOTE: wrap if greater than the register size
-    _vReg[vregXIndex] = (_vReg[vregXIndex] + data) % sizeof(RegisterSize8);
+    _vReg[vregXIndex] =
+        (_vReg[vregXIndex] + data) % std::numeric_limits<uint8_t>::max();
   } else if (opcode >= InstructionCode::SET_REG_START &&
              opcode <= InstructionCode::SET_REG_END) {
     executeSetRegInstr(opcode);
