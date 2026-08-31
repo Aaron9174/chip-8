@@ -14,6 +14,8 @@ constexpr double TARGET_HZ = 60;
 constexpr uint8_t DIGIT_SPRITE_SIZE_BYTES = 5;
 constexpr uint8_t SPRITE_DIGIT_AMOUNT = 16;
 
+constexpr const char *UNRECOG_OP_CODE_ERR = "[Error] Unrecognized opcode";
+
 using SpriteDigit = std::array<uint8_t, DIGIT_SPRITE_SIZE_BYTES>;
 constexpr SpriteDigit sprite0 = {0xF0, 0x90, 0x90, 0x90, 0xF0};
 constexpr SpriteDigit sprite1 = {0x20, 0x60, 0x20, 0x20, 0x70};
@@ -61,6 +63,30 @@ private:
 
   // TODO: docs
   void execute(InstructionCode opcode);
+
+  // TODO: docs
+  void executeSetRegInstr(InstructionCode opcode);
+
+  // TODO: docs
+  void executeSkipRegInstr(InstructionCode opcode);
+
+  // TODO: docs
+  void executeIoTimerRegInstr(InstructionCode opcode);
+
+  /**
+   * Takes the v register index, and then updates memory of at I, I+1, and I+2
+   * with the decimal hundreds, tens, and ones place respectively
+   * @param vregXIndex - The v register index to use
+   */
+  void executeBcdInstr(uint8_t vregXIndex);
+
+  /**
+   * Given a sprite digit value (0x0 - 0xF) and the follow:
+   * - Sprite digits are stored at the beginning of memory starting 0x0
+   * - Sprites digits are 5 bytes long
+   * @returns the address of the given value
+   */
+  RegisterSize16 getSpriteDigitAddress(uint8_t spriteValue);
 
   // TODO: docs
   uint8_t generateRandomNumber();
