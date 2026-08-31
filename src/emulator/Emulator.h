@@ -2,6 +2,7 @@
 #define EMULATOR__H
 
 #include "Common.h"
+#include "Display.h"
 #include <array>
 #include <vector>
 
@@ -65,6 +66,9 @@ private:
   void execute(InstructionCode opcode);
 
   // TODO: docs
+  void drawSprite(uint16_t opcodeByte);
+
+  // TODO: docs
   void executeSetRegInstr(InstructionCode opcode);
 
   // TODO: docs
@@ -118,6 +122,12 @@ private:
 
   // Stack pointer register used to point to the topmost level of the stack
   RegisterSize8 _spReg;
+
+  // The display object used to render the display buffer
+  Display _display;
+
+  // 1D array representing the monochrome display
+  std::array<RegisterSize8, DISPLAY_WIDTH * DISPLAY_HEIGHT> _displayBuffer;
 };
 
 } // namespace chip8

@@ -24,6 +24,11 @@ constexpr uint16_t MASK_0FFF = 0x0FFF;
 constexpr uint16_t MASK_LSB_BIT = 0x0001;
 constexpr uint16_t MASK_MSB_BIT = 0x8000;
 
+// Default chip8 display width and height (in pixels)
+constexpr uint8_t DISPLAY_WIDTH = 64;
+constexpr uint8_t DISPLAY_HEIGHT = 32;
+constexpr uint8_t BITS_IN_A_BYTE = 8;
+
 /**
  * Nibbles that represent different set register instruction codes
  */

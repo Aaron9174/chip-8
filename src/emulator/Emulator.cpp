@@ -9,8 +9,9 @@ namespace chip8 {
 /****************************************************************************/
 /****************************************************************************/
 Emulator::Emulator()
-    : _memory(), _stack{}, _iReg(0), _vReg{}, _vfRegister(0), _delayReg(0),
-      _soundTimerReg(0), _pcReg(PROGRAM_START_MEM_ADDRESS), _spReg(0) {
+    : _memory{}, _stack{}, _iReg(0), _vReg{}, _vfRegister(0), _delayReg(0),
+      _soundTimerReg(0), _pcReg(PROGRAM_START_MEM_ADDRESS), _spReg(0),
+      _display(), _displayBuffer{} {
   loadHexDigitSprites();
 }
 
@@ -58,7 +59,9 @@ void Emulator::execute(InstructionCode opcode) {
   const uint16_t opcodeByte = static_cast<uint16_t>(opcode);
 
   if (opcode == InstructionCode::CLS) {
-    // TODO: implement this with display work
+    // Clears the display
+    _displayBuffer = {};
+    _display.clear();
   } else if (opcode == InstructionCode::RET) {
     // Interpreter sets the program counter to the top of the stack and the
     // subtracts one from the stack pointer ()
@@ -149,15 +152,62 @@ void Emulator::execute(InstructionCode opcode) {
     _vReg[vregIndex] = randomNum & data;
   } else if (opcode >= InstructionCode::DRW_VX_VY_START &&
              opcode <= InstructionCode::DRW_VX_VY_END) {
-    // TODO: implement with display logic
+    drawSprite(opcodeByte);
   } else if (opcode >= InstructionCode::SKP_START &&
              opcode <= InstructionCode::SKP_END) {
     executeSkipRegInstr(opcode);
   } else if (opcode >= InstructionCode::IO_AND_TIMER_INSTR_START &&
              opcode <= InstructionCode::IO_AND_TIMER_INSTR_END) {
-    // TODO: implement io and timer instruction behavior
+    executeIoTimerRegInstr(opcode);
   } else {
     throw std::runtime_error(UNRECOG_OP_CODE_ERR);
+  }
+}
+
+/****************************************************************************/
+/****************************************************************************/
+void Emulator::drawSprite(uint16_t opcodeByte) {
+  // Display n-byte sprite starting at memory location
+  // I at (Vx, Vy), set VF = collision (0xDxyn)
+  uint8_t vregXIndex = opcodeByte & MASK_0F00;
+  uint8_t vregYIndex = opcodeByte & MASK_00F0;
+  uint8_t readLenBytes = opcodeByte & MASK_000F;
+
+  // Loop through the rows in the pixel array
+  //    0      64
+  //   0|======|
+  //    |      | <== Write first byte here
+  //    |      | <== Then second byte here
+  //    |      |
+  //  32|======|
+  for (uint8_t row = 0; row < readLenBytes; row++) {
+    // Get the sprite to write from memory
+    uint8_t spriteByte = _memory[_iReg + row];
+
+    // Calculate the excess screen overlap (if any) in the y direction
+    uint8_t screenY = (_vReg[vregYIndex] + row) % DISPLAY_HEIGHT;
+
+    for (uint8_t column = 0; column < BITS_IN_A_BYTE; column++) {
+
+      // The sprite bit is asserted, draw to the screen occurs
+      if ((spriteByte & (0x80 >> column)) != 0) {
+
+        // Calculate the excess screen overlap (if any) in the x direction
+        uint8_t screenX = (_vReg[vregXIndex] + column) % DISPLAY_WIDTH;
+
+        // The index in the stitched together array is the wrapped x-pixel
+        // location and y-pixel location (must travel a full display width to
+        // get to the next y)
+        uint16_t screenIndex = screenX + (screenY * DISPLAY_WIDTH);
+
+        // Collision has occurred
+        if (_displayBuffer[screenIndex] == 1) {
+          _vfRegister = 1;
+        }
+
+        _displayBuffer[screenIndex] ^= 1;
+      }
+    }
   }
 }
 

@@ -6,6 +6,10 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Set up SDL dependency
+list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew" "/usr/local")
+find_package(SDL2 CONFIG REQUIRED)
+
 set(DISASM_TARGET "chip8_disasm")
 set(EMU_TARGET "chip8_emu")
 set(COMPILER_OPTIONS "-Wall" "-Wextra" "-Wpedantic")
