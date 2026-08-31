@@ -29,6 +29,8 @@ constexpr uint8_t DISPLAY_WIDTH = 64;
 constexpr uint8_t DISPLAY_HEIGHT = 32;
 constexpr uint8_t BITS_IN_A_BYTE = 8;
 
+constexpr uint8_t BYTES_PER_OPCODE = 2;
+
 /**
  * Nibbles that represent different set register instruction codes
  */
