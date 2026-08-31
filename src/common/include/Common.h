@@ -21,6 +21,8 @@ constexpr uint16_t MASK_0F00 = 0x0F00;
 constexpr uint16_t MASK_00F0 = 0x00F0;
 constexpr uint16_t MASK_000F = 0x000F;
 constexpr uint16_t MASK_0FFF = 0x0FFF;
+constexpr uint16_t MASK_LSB_BIT = 0x0001;
+constexpr uint16_t MASK_MSB_BIT = 0x8000;
 
 /**
  * Nibbles that represent different set register instruction codes
@@ -107,7 +109,7 @@ enum class InstructionCode : uint16_t {
                             // I at (Vx, Vy), set VF = collision (0xDxyn)
   DRW_VX_VY_END = 0xDFFF,
   SKP_START = 0xE000, // Defines a possible skip instruction (used with masking)
-  SKP_END = 0xE000,
+  SKP_END = 0xEFFF,
   IO_AND_TIMER_INSTR_START = 0xF000,
   IO_AND_TIMER_INSTR_END = 0xFFFF,
 };
