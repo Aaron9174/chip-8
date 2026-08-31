@@ -1,5 +1,7 @@
 #include "Emulator.h"
 #include "Common.h"
+#include <exception>
+#include <iostream>
 #include <limits>
 #include <random>
 #include <stdexcept>
@@ -31,6 +33,7 @@ void Emulator::loadHexDigitSprites() {
 void Emulator::loadProgram(std::vector<uint8_t> &romBuffer) {
   uint32_t memoryByteIndex = PROGRAM_START_MEM_ADDRESS;
   for (auto romByte : romBuffer) {
+    printf("loading %02x into address %02x\n", romByte, memoryByteIndex);
     _memory[memoryByteIndex++] = romByte;
   }
 }
@@ -39,8 +42,14 @@ void Emulator::loadProgram(std::vector<uint8_t> &romBuffer) {
 /****************************************************************************/
 void Emulator::start() {
   while (true) {
-    // TODO: fetch command
-    // TODO: execute command (catch errors, report, and break out)
+    InstructionCode opcode = fetch();
+    try {
+      execute(opcode);
+    } catch (const std::exception &err) {
+      std::cout << err.what() << std::endl;
+      // TODO: do we break out?
+      // break;
+    }
   }
 }
 
@@ -48,8 +57,11 @@ void Emulator::start() {
 /****************************************************************************/
 InstructionCode Emulator::fetch() {
   uint8_t upperByte = _memory[_pcReg];
-  uint8_t lowerByte = _memory[_pcReg];
-  _pcReg += 2;
+  uint8_t lowerByte = _memory[_pcReg + 1];
+  printf("PC reg: 0x%04x\n", _pcReg);
+  printf("upper: 0x%02x\n", upperByte);
+  printf("lower: 0x%02x\n", lowerByte);
+  _pcReg += BYTES_PER_OPCODE;
   return static_cast<InstructionCode>((upperByte << 8) | lowerByte);
 }
 
@@ -57,11 +69,12 @@ InstructionCode Emulator::fetch() {
 /****************************************************************************/
 void Emulator::execute(InstructionCode opcode) {
   const uint16_t opcodeByte = static_cast<uint16_t>(opcode);
+  printf("opcode: 0x%04x\n", opcodeByte);
 
   if (opcode == InstructionCode::CLS) {
     // Clears the display
     _displayBuffer = {};
-    _display.clear();
+    _display.render(_displayBuffer);
   } else if (opcode == InstructionCode::RET) {
     // Interpreter sets the program counter to the top of the stack and the
     // subtracts one from the stack pointer ()
@@ -72,8 +85,12 @@ void Emulator::execute(InstructionCode opcode) {
     // Interpreter sets the program counter to address 0xnnn (0x1nnn)
 
     const RegisterSize16 jmpAddr = opcodeByte & MASK_0FFF;
+    printf("jmp address 0x%04x\n", jmpAddr);
+    printf("pc reg address 0x%04x\n", _pcReg - BYTES_PER_OPCODE);
     // Infinite loop, throw error
-    if (_pcReg == jmpAddr) {
+    // NOTE: the PC counter is already been incremented in fetch so subtract
+    // opcode byte length
+    if ((_pcReg - BYTES_PER_OPCODE) == jmpAddr) {
       throw std::runtime_error("[Error] Infinite loop detected.");
     }
     _pcReg = jmpAddr;
@@ -88,68 +105,68 @@ void Emulator::execute(InstructionCode opcode) {
   } else if (opcode >= InstructionCode::SE_VX_KK_START &&
              opcode <= InstructionCode::SE_VX_KK_END) {
     // Skip next instruction (update PC by 2 bytes) if Vx == kk (0x3xkk)
-    const uint8_t vregIndex = opcodeByte & MASK_0F00;
+    const uint8_t vregXIndex = (opcodeByte & MASK_0F00) >> 8;
     const uint16_t data = opcodeByte & MASK_00FF;
-    if (_vReg[vregIndex] == data) {
+    if (_vReg[vregXIndex] == data) {
       _pcReg += 2;
     }
   } else if (opcode >= InstructionCode::SNE_VX_KK_START &&
              opcode <= InstructionCode::SNE_VX_KK_END) {
     // Skip next instruction (update PC by 2 bytes) if Vx != kk (0x4xkk)
-    const uint8_t vregIndex = opcodeByte & MASK_0F00;
+    const uint8_t vregXIndex = (opcodeByte & MASK_0F00) >> 8;
     const uint16_t data = opcodeByte & MASK_00FF;
-    if (_vReg[vregIndex] != data) {
+    if (_vReg[vregXIndex] != data) {
       _pcReg += 2;
     }
   } else if (opcode >= InstructionCode::SE_VX_VY_START &&
              opcode <= InstructionCode::SE_VX_VY_END) {
     // Skip next instruction (update PC by 2 bytes) if Vx == Vy (0x5xy0)
-    const uint8_t vregIndex1 = opcodeByte & MASK_0F00;
-    const uint8_t vregIndex2 = opcodeByte & MASK_00F0;
-    if (_vReg[vregIndex1] == _vReg[vregIndex2]) {
+    const uint8_t vregXIndex = (opcodeByte & MASK_0F00) >> 8;
+    const uint8_t vregYIndex = (opcodeByte & MASK_00F0) >> 4;
+    if (_vReg[vregXIndex] == _vReg[vregYIndex]) {
       _pcReg += 2;
     }
   } else if (opcode >= InstructionCode::LD_VX_KK_START &&
              opcode <= InstructionCode::LD_VX_KK_END) {
     // Puts the value kk in register Vx s.t. Vx=kk (0x6xkk)
-    const uint8_t vregIndex = opcodeByte & MASK_0F00;
-    const RegisterSize8 data = opcodeByte & MASK_00FF;
-    _vReg[vregIndex] = data;
+    const uint8_t vregXIndex = (opcodeByte & MASK_0F00) >> 8;
+    const RegisterSize8 data = (opcodeByte & MASK_00FF) >> 4;
+    _vReg[vregXIndex] = data;
   } else if (opcode >= InstructionCode::ADD_VX_KK_START &&
              opcode <= InstructionCode::ADD_VX_KK_END) {
     // Adds value to Vx s.t. Vx=Vx+kk (0x7xkk)
-    const uint8_t vregIndex = opcodeByte & MASK_0F00;
-    const RegisterSize8 data = opcodeByte & MASK_00FF;
+    const uint8_t vregXIndex = (opcodeByte & MASK_0F00) >> 8;
+    const RegisterSize8 data = (opcodeByte & MASK_00FF) >> 4;
     // NOTE: wrap if greater than the register size
-    _vReg[vregIndex] = (_vReg[vregIndex] + data) % sizeof(RegisterSize8);
+    _vReg[vregXIndex] = (_vReg[vregXIndex] + data) % sizeof(RegisterSize8);
   } else if (opcode >= InstructionCode::SET_REG_START &&
              opcode <= InstructionCode::SET_REG_END) {
     executeSetRegInstr(opcode);
   } else if (opcode >= InstructionCode::SNE_VX_VY_START &&
              opcode <= InstructionCode::SNE_VX_VY_END) {
     // Skip next instruction if Vx!=Vy (0x9xy0)
-    const uint8_t vregIndex1 = opcodeByte & MASK_0F00;
-    const uint8_t vregIndex2 = opcodeByte & MASK_00F0;
-    if (_vReg[vregIndex1] != _vReg[vregIndex2]) {
+    const uint8_t vregXIndex = (opcodeByte & MASK_0F00) >> 8;
+    const uint8_t vregYIndex = (opcodeByte & MASK_00F0) >> 4;
+    if (_vReg[vregXIndex] != _vReg[vregYIndex]) {
       _pcReg += 2;
     }
   } else if (opcode >= InstructionCode::LD_I_ADDR_START &&
              opcode <= InstructionCode::LD_I_ADDR_END) {
     // Set register I s.t. I=nnn (0xAnnn)
-    const RegisterSize16 ldAddr = opcodeByte & MASK_0FFF;
+    const RegisterSize16 ldAddr = (opcodeByte & MASK_0FFF);
     _iReg = ldAddr;
   } else if (opcode >= InstructionCode::JP_V0_ADDR_START &&
              opcode <= InstructionCode::JP_V0_ADDR_END) {
     // Jump to location nnn + V0 (0xBnnn)
-    const RegisterSize16 jmpAddr = opcodeByte & MASK_0FFF;
+    const RegisterSize16 jmpAddr = (opcodeByte & MASK_0FFF);
     _pcReg = _vReg[0] + jmpAddr;
   } else if (opcode >= InstructionCode::RND_VX_KK_START &&
              opcode <= InstructionCode::RND_VX_KK_END) {
     // Set register Vx= Rnd(byte) AND kk (0xCxkk)
     uint8_t randomNum = generateRandomNumber();
     uint8_t data = opcodeByte & MASK_00FF;
-    uint8_t vregIndex = opcodeByte & MASK_0F00;
-    _vReg[vregIndex] = randomNum & data;
+    uint8_t vregXIndex = (opcodeByte & MASK_0F00) >> 8;
+    _vReg[vregXIndex] = randomNum & data;
   } else if (opcode >= InstructionCode::DRW_VX_VY_START &&
              opcode <= InstructionCode::DRW_VX_VY_END) {
     drawSprite(opcodeByte);
@@ -169,9 +186,9 @@ void Emulator::execute(InstructionCode opcode) {
 void Emulator::drawSprite(uint16_t opcodeByte) {
   // Display n-byte sprite starting at memory location
   // I at (Vx, Vy), set VF = collision (0xDxyn)
-  uint8_t vregXIndex = opcodeByte & MASK_0F00;
-  uint8_t vregYIndex = opcodeByte & MASK_00F0;
-  uint8_t readLenBytes = opcodeByte & MASK_000F;
+  uint8_t vregXIndex = (opcodeByte & MASK_0F00) >> 8;
+  uint8_t vregYIndex = (opcodeByte & MASK_00F0) >> 4;
+  uint8_t readLenBytes = (opcodeByte & MASK_000F);
 
   // Loop through the rows in the pixel array
   //    0      64
@@ -209,6 +226,8 @@ void Emulator::drawSprite(uint16_t opcodeByte) {
       }
     }
   }
+
+  _display.render(_displayBuffer);
 }
 
 /****************************************************************************/
@@ -217,8 +236,8 @@ void Emulator::executeSetRegInstr(InstructionCode opcode) {
   const uint16_t opcodeByte = static_cast<uint16_t>(opcode);
   const auto setRegOpcode =
       static_cast<SetRegInstrCode>(opcodeByte & MASK_000F);
-  const uint8_t vregXIndex = opcodeByte & MASK_0F00;
-  const uint8_t vregYIndex = opcodeByte & MASK_00F0;
+  const uint8_t vregXIndex = (opcodeByte & MASK_0F00) >> 8;
+  const uint8_t vregYIndex = (opcodeByte & MASK_00F0) >> 4;
 
   switch (setRegOpcode) {
   case SetRegInstrCode::LD_VX_VY:
@@ -326,7 +345,7 @@ void Emulator::executeIoTimerRegInstr(InstructionCode opcode) {
   const uint16_t opcodeByte = static_cast<uint16_t>(opcode);
   const auto ioTimerOpcode =
       static_cast<IoAndTimerCode>(opcodeByte & MASK_00FF);
-  const uint8_t vregXIndex = opcodeByte & MASK_0F00;
+  const uint8_t vregXIndex = (opcodeByte & MASK_0F00) >> 8;
 
   switch (ioTimerOpcode) {
   case IoAndTimerCode::LD_VX_DT:
