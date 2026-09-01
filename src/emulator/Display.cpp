@@ -16,8 +16,11 @@ Display::Display() {
                        SDL_WINDOWPOS_CENTERED, DISPLAY_WIDTH * DISPLAY_SCALE,
                        DISPLAY_HEIGHT * DISPLAY_SCALE, SDL_WINDOW_SHOWN);
 
+  // Rendering accelerated flag uses GPU instead of CPU for drawing
   _renderer = SDL_CreateRenderer(_window, -1, SDL_RENDERER_ACCELERATED);
 
+  // NOTE: Each RGBA channel is assigned a byte for the SDL_PIXELFORMAT_RGBA8888
+  // format
   _texture = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_RGBA8888,
                                SDL_TEXTUREACCESS_STREAMING, DISPLAY_WIDTH,
                                DISPLAY_HEIGHT);
@@ -36,6 +39,7 @@ Display::~Display() {
 /****************************************************************************/
 void Display::render(const std::array<uint8_t, DISPLAY_WIDTH * DISPLAY_HEIGHT>
                          &emuDisplayBuffer) {
+  // SDL2 expects 4-byte values per pixel (SDL_PIXELFORMAT_RGBA8888)
   std::array<uint32_t, DISPLAY_WIDTH * DISPLAY_HEIGHT> pixels{};
 
   for (size_t i = 0; i < emuDisplayBuffer.size(); ++i) {
@@ -47,7 +51,7 @@ void Display::render(const std::array<uint8_t, DISPLAY_WIDTH * DISPLAY_HEIGHT>
   SDL_UpdateTexture(_texture, nullptr, pixels.data(),
                     DISPLAY_WIDTH * sizeof(uint32_t));
 
-  // Clean the screen and copy the texture
+  // Clean the screen, copy the texture, and present it
   SDL_RenderClear(_renderer);
   SDL_RenderCopy(_renderer, _texture, nullptr, nullptr);
   SDL_RenderPresent(_renderer);

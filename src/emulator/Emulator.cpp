@@ -55,11 +55,11 @@ void Emulator::start() {
   // Get start time
   auto startTime = std::chrono::steady_clock::now();
 
-  // Stream register states to debug stream
-  registerToDebugStream();
-
   InstructionCode opcode;
   while (true) {
+    // Stream register states to debug stream
+    registerToDebugStream();
+
     if (_inputState == InputState::NONE) {
       opcode = fetch();
     }

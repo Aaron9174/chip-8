@@ -51,41 +51,77 @@ enum class InputState : uint8_t {
 
 class Emulator {
 public:
-  // TODO: docs
+  /** Constructor */
   Emulator();
 
-  // TODO: docs
+  /** Destructor */
   ~Emulator() = default;
 
-  // TODO: docs
+  /**
+   * Load the ROM program into memory
+   * @param romBuffer - The ROM buffer of bytes to load
+   */
   void loadProgram(std::vector<uint8_t> &romBuffer);
 
-  // TODO: docs
+  /**
+   * Starts the emulator
+   * NOTE: runs the core loop at ~700Hz but display and sound/delay registers at
+   * 60Hz
+   */
   void start();
 
-  // TODO: docs
+  /**
+   * Retrieves the debug stream
+   * @return the debug stream containing debug information about register states
+   */
   std::stringstream &getDebugStream();
 
 private:
-  // TODO: docs
+  /**
+   * Loads all 16 the default display hex number byte data at the start of
+   * memory
+   */
   void loadHexDigitSprites();
 
-  // TODO: docs
+  /**
+   * Fetches the instruction opcode (two-bytes) and increments the PC counter by
+   * 2
+   * @returns the 2-byte instruction code
+   */
   InstructionCode fetch();
 
-  // TODO: docs
+  /**
+   * Executes the instruction opcode
+   * @param opcode - The opcode to execute
+   * @throws if opcode is unrecognized
+   */
   void execute(InstructionCode opcode);
 
-  // TODO: docs
+  /**
+   * Draw a sprite starting at memory location I at display location (Vx, Vy)
+   * NOTE: Also sets VF to 1 if collision occurred
+   */
   void drawSprite(uint16_t opcodeByte);
 
-  // TODO: docs
+  /**
+   * Executes a set register instruction (opcode between 0x8000-0x8FFE)
+   * @param opcode - The set register opcode
+   * @throws if opcode is unrecognized
+   */
   void executeSetRegInstr(InstructionCode opcode);
 
-  // TODO: docs
+  /**
+   * Executes a skip register instruction (opcode between 0xE000-0xEFFF)
+   * @param opcode - The skip register instruction op code
+   * @throws if opcode is unrecognized
+   */
   void executeSkipRegInstr(InstructionCode opcode);
 
-  // TODO: docs
+  /**
+   * Executes a IO timer register instruction
+   * @param opcode - The IO timer register opcode
+   * @throws if opcode is unrecognized
+   */
   void executeIoTimerRegInstr(InstructionCode opcode);
 
   /**
@@ -103,16 +139,19 @@ private:
    */
   RegisterSize16 getSpriteDigitAddress(uint8_t spriteValue);
 
-  // TODO: docs
+  /** Generates a number using mt19937 */
   uint8_t generateRandomNumber();
 
-  // TODO: docs
+  /** Streams formatted register data to the debug stream */
   void registerToDebugStream();
 
   // Memory structure for RAM
   std::array<uint8_t, TOTAL_MEMORY_SIZE_BYTES> _memory;
 
-  // TODO: docs
+  /**
+   * The program stack, used for storing addresses for the interpreter to
+   * return to when a subroutine is over
+   */
   std::array<uint16_t, TOTAL_STACK_SIZE_BYTES / 2> _stack;
 
   // Register used to store memory addresses
@@ -147,16 +186,18 @@ private:
   // key is unpressed
   KeypadType _keypad;
 
-  // Determines what input state the emulator is in
-  //    NONE - No input has been requested
-  //    WAITING - Waiting on input from the user
-  //    INPUT_RECIEVED - Input has been received
+  /**
+   * Determines what input state the emulator is in
+   *    NONE - No input has been requested
+   *    WAITING - Waiting on input from the user
+   *    INPUT_RECIEVED - Input has been received
+   */
   InputState _inputState;
 
   // Stores the last recieved input from the user (0x0-0xF)
   uint8_t _lastRecievedInput;
 
-  // TODO: docs
+  // String stream used to format debug data
   std::stringstream _debugStream;
 };
 
