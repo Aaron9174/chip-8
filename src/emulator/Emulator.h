@@ -4,6 +4,7 @@
 #include "Common.h"
 #include "Display.h"
 #include <array>
+#include <sstream>
 #include <vector>
 
 namespace chip8 {
@@ -55,6 +56,9 @@ public:
   // TODO: docs
   void start();
 
+  // TODO: docs
+  std::stringstream &getDebugStream();
+
 private:
   // TODO: docs
   void loadHexDigitSprites();
@@ -95,6 +99,9 @@ private:
   // TODO: docs
   uint8_t generateRandomNumber();
 
+  // TODO: docs
+  void registerToDebugStream();
+
   // Memory structure for RAM
   std::array<uint8_t, TOTAL_MEMORY_SIZE_BYTES> _memory;
 
@@ -128,6 +135,9 @@ private:
 
   // 1D array representing the monochrome display
   std::array<RegisterSize8, DISPLAY_WIDTH * DISPLAY_HEIGHT> _displayBuffer;
+
+  // TODO: docs
+  std::stringstream _debugStream;
 };
 
 } // namespace chip8

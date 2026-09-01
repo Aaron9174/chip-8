@@ -47,4 +47,16 @@ int main(int argc, char *argv[]) {
 
   // Start the emulator
   chip8Emu.start();
+
+  std::stringstream &debugStream = chip8Emu.getDebugStream();
+  // Output formatted string stream to file for easy viewing
+  std::ofstream outFile("DebugLog.txt");
+  if (outFile.is_open()) {
+    outFile << debugStream.rdbuf();
+    outFile.close();
+    std::cout << "[Emulator] Generated Debug Output at "
+              << std::filesystem::current_path() << "\n";
+  } else {
+    std::cerr << "Error: Could not open output file\n";
+  }
 }

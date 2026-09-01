@@ -45,7 +45,7 @@ void Display::render(const std::array<uint8_t, DISPLAY_WIDTH * DISPLAY_HEIGHT>
   SDL_UpdateTexture(_texture, nullptr, pixels.data(),
                     DISPLAY_WIDTH * sizeof(uint32_t));
 
-  // Clearn the screen and copy the texture
+  // Clean the screen and copy the texture
   SDL_RenderClear(_renderer);
   SDL_RenderCopy(_renderer, _texture, nullptr, nullptr);
   SDL_RenderPresent(_renderer);
@@ -53,6 +53,14 @@ void Display::render(const std::array<uint8_t, DISPLAY_WIDTH * DISPLAY_HEIGHT>
 
 /****************************************************************************/
 /****************************************************************************/
-void Display::clear() { SDL_RenderClear(_renderer); }
+void Display::checkSdlEvent() {
+  SDL_Event event;
+  while (SDL_PollEvent(&event)) {
+    if (event.type == SDL_QUIT) {
+      // Exit cleanly
+      std::exit(0);
+    }
+  }
+}
 
 } // namespace chip8

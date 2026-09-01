@@ -1,6 +1,7 @@
 #include "Emulator.h"
 #include "Common.h"
 #include <exception>
+#include <fstream>
 #include <iostream>
 #include <limits>
 #include <random>
@@ -13,7 +14,7 @@ namespace chip8 {
 Emulator::Emulator()
     : _memory{}, _stack{}, _iReg(0), _vReg{}, _vfRegister(0), _delayReg(0),
       _soundTimerReg(0), _pcReg(PROGRAM_START_MEM_ADDRESS), _spReg(0),
-      _display(), _displayBuffer{} {
+      _display(), _displayBuffer{}, _debugStream() {
   loadHexDigitSprites();
 }
 
@@ -42,26 +43,37 @@ void Emulator::loadProgram(std::vector<uint8_t> &romBuffer) {
 /****************************************************************************/
 void Emulator::start() {
   while (true) {
+
+    // Checks for an SDL event (like user input)
+    Display::checkSdlEvent();
+
     InstructionCode opcode = fetch();
     try {
       execute(opcode);
     } catch (const std::exception &err) {
       std::cout << err.what() << std::endl;
-      // TODO: do we break out?
-      // break;
+      break;
     }
   }
 }
 
 /****************************************************************************/
 /****************************************************************************/
+std::stringstream &Emulator::getDebugStream() { return _debugStream; }
+
+/****************************************************************************/
+/****************************************************************************/
 InstructionCode Emulator::fetch() {
+  // Stream register states to debug stream
+  registerToDebugStream();
+
+  // Fetch the next byte
   uint8_t upperByte = _memory[_pcReg];
   uint8_t lowerByte = _memory[_pcReg + 1];
-  printf("PC reg: 0x%04x\n", _pcReg);
-  printf("upper: 0x%02x\n", upperByte);
-  printf("lower: 0x%02x\n", lowerByte);
+
+  // Update the program counter
   _pcReg += BYTES_PER_OPCODE;
+
   return static_cast<InstructionCode>((upperByte << 8) | lowerByte);
 }
 
@@ -85,14 +97,8 @@ void Emulator::execute(InstructionCode opcode) {
     // Interpreter sets the program counter to address 0xnnn (0x1nnn)
 
     const RegisterSize16 jmpAddr = opcodeByte & MASK_0FFF;
-    printf("jmp address 0x%04x\n", jmpAddr);
-    printf("pc reg address 0x%04x\n", _pcReg - BYTES_PER_OPCODE);
-    // Infinite loop, throw error
     // NOTE: the PC counter is already been incremented in fetch so subtract
     // opcode byte length
-    if ((_pcReg - BYTES_PER_OPCODE) == jmpAddr) {
-      throw std::runtime_error("[Error] Infinite loop detected.");
-    }
     _pcReg = jmpAddr;
   } else if (opcode >= InstructionCode::CALL_ADDR_START &&
              opcode <= InstructionCode::CALL_ADDR_END) {
@@ -106,9 +112,9 @@ void Emulator::execute(InstructionCode opcode) {
              opcode <= InstructionCode::SE_VX_KK_END) {
     // Skip next instruction (update PC by 2 bytes) if Vx == kk (0x3xkk)
     const uint8_t vregXIndex = (opcodeByte & MASK_0F00) >> 8;
-    const uint16_t data = opcodeByte & MASK_00FF;
+    const uint8_t data = opcodeByte & MASK_00FF;
     if (_vReg[vregXIndex] == data) {
-      _pcReg += 2;
+      _pcReg += BYTES_PER_OPCODE;
     }
   } else if (opcode >= InstructionCode::SNE_VX_KK_START &&
              opcode <= InstructionCode::SNE_VX_KK_END) {
@@ -116,7 +122,7 @@ void Emulator::execute(InstructionCode opcode) {
     const uint8_t vregXIndex = (opcodeByte & MASK_0F00) >> 8;
     const uint16_t data = opcodeByte & MASK_00FF;
     if (_vReg[vregXIndex] != data) {
-      _pcReg += 2;
+      _pcReg += BYTES_PER_OPCODE;
     }
   } else if (opcode >= InstructionCode::SE_VX_VY_START &&
              opcode <= InstructionCode::SE_VX_VY_END) {
@@ -124,7 +130,7 @@ void Emulator::execute(InstructionCode opcode) {
     const uint8_t vregXIndex = (opcodeByte & MASK_0F00) >> 8;
     const uint8_t vregYIndex = (opcodeByte & MASK_00F0) >> 4;
     if (_vReg[vregXIndex] == _vReg[vregYIndex]) {
-      _pcReg += 2;
+      _pcReg += BYTES_PER_OPCODE;
     }
   } else if (opcode >= InstructionCode::LD_VX_KK_START &&
              opcode <= InstructionCode::LD_VX_KK_END) {
@@ -136,10 +142,10 @@ void Emulator::execute(InstructionCode opcode) {
              opcode <= InstructionCode::ADD_VX_KK_END) {
     // Adds value to Vx s.t. Vx=Vx+kk (0x7xkk)
     const uint8_t vregXIndex = (opcodeByte & MASK_0F00) >> 8;
-    const RegisterSize8 data = (opcodeByte & MASK_00FF);
-    // NOTE: wrap if greater than the register size
-    _vReg[vregXIndex] =
-        (_vReg[vregXIndex] + data) % std::numeric_limits<uint8_t>::max();
+    const uint8_t data = (opcodeByte & MASK_00FF);
+    // NOTE: wrap occurs automatically due to data type if greater than the
+    // register size
+    _vReg[vregXIndex] = (_vReg[vregXIndex] + data);
   } else if (opcode >= InstructionCode::SET_REG_START &&
              opcode <= InstructionCode::SET_REG_END) {
     executeSetRegInstr(opcode);
@@ -267,8 +273,7 @@ void Emulator::executeSetRegInstr(InstructionCode opcode) {
     } else {
       _vfRegister = 0;
     }
-    _vReg[vregXIndex] =
-        (_vReg[vregXIndex] + _vReg[vregYIndex]) % sizeof(RegisterSize8);
+    _vReg[vregXIndex] += _vReg[vregYIndex];
     break;
   case SetRegInstrCode::SUB_VX_VY:
     // Set Vx = Vx - Vy ; Set VF = NOT borrow (0x8xy5)
@@ -420,6 +425,48 @@ uint8_t Emulator::generateRandomNumber() {
   const uint8_t maxRandomSize = std::numeric_limits<uint8_t>::max();
   std::uniform_int_distribution<int> dist(minRandomSize, maxRandomSize);
   return static_cast<uint8_t>(dist((gen)));
+}
+
+/****************************************************************************/
+/****************************************************************************/
+void Emulator::registerToDebugStream() {
+  // Helper lambda or format setup to avoid repeating stream settings
+  auto printHex = [this](uint16_t val, uint8_t byteSize) {
+    _debugStream << "0x" << std::setfill('0') << std::setw(2 * byteSize)
+                 << std::hex << static_cast<uint32_t>(val);
+  };
+
+  _debugStream << "[DEBUG] _pcReg: ";
+  printHex(_pcReg, 2);
+  _debugStream << "\n";
+
+  for (int row = 0; row < 4; ++row) {
+    _debugStream << "[DEBUG] _vReg [" << (row * 4) << "-" << (row * 4 + 3)
+                 << "]: ";
+    for (int col = 0; col < 4; ++col) {
+      printHex(_vReg[row * 4 + col], 1);
+      _debugStream << " ";
+    }
+    _debugStream << "\n";
+  }
+
+  _debugStream << "[DEBUG] _spReg: ";
+  printHex(_spReg, 1);
+  _debugStream << "\n";
+
+  _debugStream << "[DEBUG] _iReg: ";
+  printHex(_iReg, 2);
+
+  _debugStream << "[DEBUG] Display Array Size: " << _displayBuffer.size()
+               << "\n";
+  for (size_t i = 0; i < _displayBuffer.size(); i++) {
+    if (i % DISPLAY_WIDTH == 0) {
+      _debugStream << "\n[DEBUG] ";
+    }
+    // Print pixels side-by-side (e.g., '1' for pixel set, '.' or '0' for off)
+    _debugStream << (_displayBuffer[i] ? "1" : ".");
+  }
+  _debugStream << "\n\n";
 }
 
 } // namespace chip8

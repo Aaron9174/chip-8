@@ -22,8 +22,8 @@ public:
   void render(const std::array<uint8_t, DISPLAY_WIDTH * DISPLAY_HEIGHT>
                   &emuDisplayBuffer);
 
-  // TODO: docs
-  void clear();
+  // TODO:
+  static void checkSdlEvent();
 
 private:
   // TODO: docs
