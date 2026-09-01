@@ -4,6 +4,7 @@
 #include "Common.h"
 #include "Display.h"
 #include <array>
+#include <cstdint>
 #include <sstream>
 #include <vector>
 
@@ -41,6 +42,12 @@ constexpr std::array<SpriteDigit, SPRITE_DIGIT_AMOUNT> spriteDigits = {
 
 using RegisterSize16 = uint16_t;
 using RegisterSize8 = uint8_t;
+
+enum class InputState : uint8_t {
+  NONE = 0,
+  WAITING = 1,
+  INPUT_RECIEVED = 2,
+};
 
 class Emulator {
 public:
@@ -135,6 +142,19 @@ private:
 
   // 1D array representing the monochrome display
   std::array<RegisterSize8, DISPLAY_WIDTH * DISPLAY_HEIGHT> _displayBuffer;
+
+  // Represents the state of keys, if asserted key is being pressed, otherwise
+  // key is unpressed
+  KeypadType _keypad;
+
+  // Determines what input state the emulator is in
+  //    NONE - No input has been requested
+  //    WAITING - Waiting on input from the user
+  //    INPUT_RECIEVED - Input has been received
+  InputState _inputState;
+
+  // Stores the last recieved input from the user (0x0-0xF)
+  uint8_t _lastRecievedInput;
 
   // TODO: docs
   std::stringstream _debugStream;

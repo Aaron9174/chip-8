@@ -1,6 +1,7 @@
 #ifndef COMMON__H
 #define COMMON__H
 
+#include <array>
 #include <cstdint>
 
 namespace chip8 {
@@ -32,6 +33,11 @@ constexpr uint8_t BITS_IN_A_BYTE = 8;
 constexpr uint32_t DEFAULT_60_HZ = 60;
 constexpr uint8_t BYTES_PER_OPCODE = 2;
 constexpr uint8_t INSTR_EXECUTION_COUNT_PER_FRAME = 12;
+constexpr uint8_t MAX_SUPPORTED_KEY_SIZE = 16;
+constexpr uint8_t MAX_SUPPORTED_KEY_VALUE = 0xF;
+constexpr uint8_t KEY_SENTINAL = 0xFF;
+
+using KeypadType = std::array<bool, MAX_SUPPORTED_KEY_SIZE>;
 
 /**
  * Nibbles that represent different set register instruction codes

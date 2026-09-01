@@ -16,7 +16,8 @@ namespace chip8 {
 Emulator::Emulator()
     : _memory{}, _stack{}, _iReg(0), _vReg{}, _vfRegister(0), _delayReg(0),
       _soundTimerReg(0), _pcReg(PROGRAM_START_MEM_ADDRESS), _spReg(0),
-      _display(), _displayBuffer{}, _debugStream() {
+      _display(), _displayBuffer{}, _keypad{}, _inputState(InputState::NONE),
+      _lastRecievedInput(KEY_SENTINAL), _debugStream() {
   loadHexDigitSprites();
 }
 
@@ -54,8 +55,14 @@ void Emulator::start() {
   // Get start time
   auto startTime = std::chrono::steady_clock::now();
 
+  // Stream register states to debug stream
+  registerToDebugStream();
+
+  InstructionCode opcode;
   while (true) {
-    InstructionCode opcode = fetch();
+    if (_inputState == InputState::NONE) {
+      opcode = fetch();
+    }
     try {
       execute(opcode);
       executedInstrCount++;
@@ -79,7 +86,11 @@ void Emulator::start() {
       }
 
       // Polls for an SDL event
-      Display::checkSdlEvent();
+      _lastRecievedInput = Display::checkSdlEvent(_keypad);
+      if (_inputState == InputState::WAITING &&
+          _lastRecievedInput != KEY_SENTINAL) {
+        _inputState = InputState::INPUT_RECIEVED;
+      }
 
       // Reset
       executedInstrCount = 0;
@@ -102,9 +113,6 @@ std::stringstream &Emulator::getDebugStream() { return _debugStream; }
 /****************************************************************************/
 /****************************************************************************/
 InstructionCode Emulator::fetch() {
-  // Stream register states to debug stream
-  registerToDebugStream();
-
   // Fetch the next byte
   uint8_t upperByte = _memory[_pcReg];
   uint8_t lowerByte = _memory[_pcReg + 1];
@@ -119,8 +127,6 @@ InstructionCode Emulator::fetch() {
 /****************************************************************************/
 void Emulator::execute(InstructionCode opcode) {
   const uint16_t opcodeByte = static_cast<uint16_t>(opcode);
-  printf("opcode: 0x%04x\n", opcodeByte);
-
   if (opcode == InstructionCode::CLS) {
     // Clears the display
     _displayBuffer = {};
@@ -367,16 +373,26 @@ void Emulator::executeSkipRegInstr(InstructionCode opcode) {
   const uint16_t opcodeByte = static_cast<uint16_t>(opcode);
   const auto skipInstrOpcode =
       static_cast<SkpInstrCode>(opcodeByte & MASK_00FF);
+  const uint8_t vregXIndex = (opcodeByte & MASK_0F00) >> 8;
 
   switch (skipInstrOpcode) {
   case SkpInstrCode::SKP_VX:
     // Skip next instruction if key with the value of Vx is pressed (0xEx9E)
-    // TODO: this has to be done with key interrupts
+    if (_vReg[vregXIndex] >= 0x0 && _vReg[vregXIndex] <= 0xF) {
+      if (_keypad[_vReg[vregXIndex]]) {
+        _pcReg += BYTES_PER_OPCODE;
+      }
+    }
     break;
   case SkpInstrCode::SKNP_VX:
     // Skip next instruction if the key corresponding to the value
     // Vx is in the up position
-    // TODO: this has to be done with key interrupts
+    if (_vReg[vregXIndex] >= 0x0 && _vReg[vregXIndex] <= 0xF) {
+      if (!_keypad[_vReg[vregXIndex]]) {
+        _pcReg += BYTES_PER_OPCODE;
+      }
+    }
+
     break;
   default:
     throw std::runtime_error(UNRECOG_OP_CODE_ERR);
@@ -398,7 +414,28 @@ void Emulator::executeIoTimerRegInstr(InstructionCode opcode) {
     break;
   case IoAndTimerCode::LD_VX_K:
     // Wait for key press, then store key value in Vx (0xFx0A)
-    // TODO: implement interrupts
+    if (_inputState == InputState::NONE) {
+      // Instruction will put emulator into a waiting state
+      _inputState = InputState::WAITING;
+    } else if (_inputState == InputState::WAITING) {
+      // Noop, still waiting for input
+    } else {
+      // Only supported allowed keys
+      if (_lastRecievedInput > MAX_SUPPORTED_KEY_VALUE) {
+        _debugStream << "[WARNING] Recorded input value of "
+                     << _lastRecievedInput
+                     << " which exceeds the maximum allowed value of "
+                     << MAX_SUPPORTED_KEY_VALUE << "\n";
+        return;
+      } else if (_lastRecievedInput == KEY_SENTINAL) {
+        // Still waiting for user input
+        return;
+      }
+
+      _vReg[vregXIndex] = _lastRecievedInput;
+      // Input has been received, return back to regular state
+      _inputState = InputState::NONE;
+    }
     break;
   case IoAndTimerCode::LD_DT_VX:
     // Set delay timer to Vx (0xFx15)
@@ -476,6 +513,11 @@ void Emulator::registerToDebugStream() {
 
   _debugStream << "[DEBUG] _pcReg: ";
   printHex(_pcReg, 2);
+  _debugStream << "\n";
+
+  _debugStream << "[DEBUG] _inputState: " << static_cast<uint8_t>(_inputState);
+  _debugStream << "\n";
+  _debugStream << "[DEBUG] _lastRecievedInput: " << _lastRecievedInput;
   _debugStream << "\n";
 
   for (int row = 0; row < 4; ++row) {

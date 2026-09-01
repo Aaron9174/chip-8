@@ -23,9 +23,14 @@ public:
                   &emuDisplayBuffer);
 
   // TODO:
-  static void checkSdlEvent();
+  uint8_t static checkSdlEvent(KeypadType &keypad);
 
 private:
+  // TODO: docs
+  uint8_t static decodeSdlKeypress(const Uint32 event,
+                                   const SDL_Keycode &keyCode,
+                                   KeypadType &keypad);
+
   // TODO: docs
   SDL_Window *_window = nullptr;
 
