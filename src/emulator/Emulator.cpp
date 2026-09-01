@@ -1,11 +1,13 @@
 #include "Emulator.h"
 #include "Common.h"
+#include <chrono>
 #include <exception>
 #include <iomanip>
 #include <iostream>
 #include <limits>
 #include <random>
 #include <stdexcept>
+#include <thread>
 
 namespace chip8 {
 
@@ -42,17 +44,53 @@ void Emulator::loadProgram(std::vector<uint8_t> &romBuffer) {
 /****************************************************************************/
 /****************************************************************************/
 void Emulator::start() {
+  // Counts the number of executed instructions
+  uint8_t executedInstrCount = 0;
+
+  // The amount of ns per frame
+  const auto nsPerFrame =
+      std::chrono::nanoseconds(static_cast<long long>(1e9 / DEFAULT_60_HZ));
+
+  // Get start time
+  auto startTime = std::chrono::steady_clock::now();
+
   while (true) {
-
-    // Checks for an SDL event (like user input)
-    Display::checkSdlEvent();
-
     InstructionCode opcode = fetch();
     try {
       execute(opcode);
+      executedInstrCount++;
     } catch (const std::exception &err) {
       std::cout << err.what() << std::endl;
       break;
+    }
+
+    // NOTE: Running 12 instructions per frame equates to 700Hz
+    // The original chip8 executed at a speed of 500Hz-700Hz
+    if (executedInstrCount == INSTR_EXECUTION_COUNT_PER_FRAME) {
+      // Once per frame, decrement the sound and delay registers
+
+      if (_soundTimerReg > 0) {
+        _soundTimerReg--;
+        // TODO: play a sound from SDL
+      }
+
+      if (_delayReg > 0) {
+        _delayReg--;
+      }
+
+      // Polls for an SDL event
+      Display::checkSdlEvent();
+
+      // Reset
+      executedInstrCount = 0;
+
+      startTime += nsPerFrame;
+      auto currentTime = std::chrono::steady_clock::now();
+      if (startTime < currentTime) {
+        startTime = currentTime;
+      }
+
+      std::this_thread::sleep_until(startTime);
     }
   }
 }
